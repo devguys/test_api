@@ -1,0 +1,20 @@
+{
+  "development": {
+    "username": "root",
+    "password": "root",
+    "database": "local_server",
+    "host"    : "localhost",
+    "dialect" : "mysql",
+    "strict"  : false,
+    "port"    : 3306,
+    "operatorsAliases": false
+  },
+  "production": {
+    "username": "",
+    "password": null,
+    "database": "",
+    "host"    : "",
+    "dialect" : "mysql",
+    "operatorsAliases": false
+  }
+}
