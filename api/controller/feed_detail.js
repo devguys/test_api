@@ -1,7 +1,7 @@
 'use strict'
 
 //Get ORM object
-var productDetailController = require('./product_detail');
+var feedDetailController = require('./product_detail');
 var constants               = require('../../config/constants');
 var bCrypt                  = require('bcrypt-nodejs');
 const ParseCSV              = require('bluebird');
@@ -13,15 +13,11 @@ const { body,validationResult } = require('express-validator');
 const Sequelize             = require('sequelize');
 const Op                    = Sequelize.Op;
 const db                    = require('../../models');
-const theModel              = db.product_details; 
-const theFeedModel          = db.feed_details; 
-const theUserModel          = db.user; 
-const theContr              = productDetailController;
+const theModel              = db.feed_details; 
+const theContr              = feedDetailController;
 const variableDefined       = constants[0].application;
 const fs                    = require('fs'),async = require('async'),csv = require('csv');
 const createCsvWriter       = require('csv-writer').createObjectCsvWriter;
-
-
 
 
 //-----------------------------------------------------------------------
@@ -96,40 +92,43 @@ exports.getList = function(req, res) {
 /---@body: [id, email,username]------
 /------------------------------------
 ------------------------------------*/
-exports.create  = function(req, resp) {    
+exports.create  = function(req, resp) {    console.log(req.files);
 
   //Add required validation
   var validReturn   = theContr.apiValidation(req, resp);
   if(validReturn) return;
-
-  var getData   = req.body || null; console.log(getData);
+  
+  var getData   = req.body || null; 
   if(typeof getData === 'object'){
-
-    var parentCategoryId = getData.parnet_category_id || '';
-    var categoryId = getData.category_id || '';
-
-     if(parentCategoryId){
-         theModel.findOne({           
-           where: {
-            [Op.or]: [{parnet_category_id: parentCategoryId}, {category_id: categoryId}]
+    theModel.create(req.body).then((insertRecord) => {
+      if(insertRecord.dataValues.id != undefined &&  insertRecord.dataValues.id > 0){
+        var imgStr = '';
+        var imgArr = req.files;
+        imgArr.forEach(rec => {
+          imgStr += rec.originalname+ ',';
+        })  
+        getData = {'photos' : imgStr.substr(0, imgStr.length - 1)};
+        theModel.update(getData,
+        { 
+          where: {
+            id: insertRecord.dataValues.id
           }
-         }).then(result => {
-           if(result != null){
-             resp.json({ message: variableDefined.variables.email_or_username_exists,record : result });
-             return;
-           }
-           if(result === null){
-
-            theModel.create(req.body).then((insertRecord) => {
-              if(insertRecord.dataValues.id != undefined &&  insertRecord.dataValues.id > 0){
-                resp.json({ message: 'Record Inserted!',status : 1, record: insertRecord });
-                return;
-              }
-            })
+        }).then((result) => {
+          if(result){ console.log(result);
+            //resp.json({ message: variableDefined.variables.record_updated, status : result });
+            resp.json({ message: 'Record Inserted!',status : 1, record: insertRecord });
+            return;
           }
-        });
-     }
-     return;
+          else
+            resp.json({ message: variableDefined.variables.record_update_error, status : result });
+            return;
+        })
+
+        return;
+      }
+    }) 
+
+    return;
   }
 };
 
@@ -169,71 +168,41 @@ exports.update = function(req, resp) {
 
   var getData     = req.body || null;
   var getId       = req.body.id || 0;
-  var getEmail    = req.body.email || '';
-  var getUserName = req.body.username || '';
   //image upload processing
-  var getApiImage =  req.body.profile_pic || '';
+  var getApiImage =  req.body.photos || '';
   delete req.body.id;
 
   if(!getId){
     resp.json({ message: variableDefined.variables.id_not_found,status : -1 }); 
     return;
   }
-  else if(getEmail != null && getUserName != null){
+  else {
       theModel.findAll(
       { where: { 
-        [Op.or]: [
-          {email: getEmail}, {username: getUserName}
-        ], 
         id:
           { [Op.ne] : getId}                        
         }}).then(result => {
           var findRec = result;
-          console.log("UserRec: ",findRec);
-          if(findRec.length > 0){
-            resp.json({ message: variableDefined.variables.email_exists, status : 0,record: findRec }); 
+          console.log("FeedRec: ",findRec);
+          if(findRec.length == 0){
+            resp.json({ message: variableDefined.variables.id_not_exists, status : 0,record: findRec }); 
             return;
           }
           if(!findRec.length){
-            if(getData.password != undefined){
-              var hashPassword = theContr.hashPassword(getData.password);
-              if(hashPassword) getData.password = hashPassword;
-            }
-            //processing image
-            if(getApiImage != null){
-              // to declare some path to store your converted image
-              var fileName      = getId + "_" + getData.first_name + variableDefined.variables.user_picture_extension;
 
-              //old_filename    = Date.now() + variableDefined.variables.user_picture_extension
-              const path        = variableDefined.serverPath.userUploadDir + fileName.toString().trim();
-              const imgdata     = getApiImage;
-              //const img = 'data:image/png;base64,aBdiVBORw0fKGgoAAA';
-              const bufferSize    = Buffer.from(imgdata.substring(imgdata.indexOf(',') + 1));
-              const bufferLength  = bufferSize.length;
-              const uploadSize    = bufferSize.length / 1e+6;
-              //console.log("Byte length: " + bufferSize.length);
-              //console.log("MB: " + bufferSize.length / 1e+6);
-              if(uploadSize != null && uploadSize >=1){
-                resp.json({ message: variableDefined.variables.image_upload_max_size, status : 0 });
-                return;
-              }
-              // to convert base64 format into random filename
-              const base64Data  = imgdata.replace(/^data:([A-Za-z-+/]+);base64,/, '');              
-              fs.writeFileSync(path, base64Data,  {encoding: variableDefined.variables.user_picture_upload_encoding});
-            }
-            theModel.update(getData,
-            {
-              where: {
-                id: getId
-              }
-            }).then((result) => {
-              if(result){
-                resp.json({ message: variableDefined.variables.record_updated, status : result });
-                return;
-              }
-              else
-                resp.json({ message: variableDefined.variables.record_update_error, status : result });
-                return;
+              theModel.update(getData,
+              {
+                where: {
+                  id: getId
+                }
+              }).then((result) => {
+                if(result){
+                  resp.json({ message: variableDefined.variables.record_updated, status : result });
+                  return;
+                }
+                else
+                  resp.json({ message: variableDefined.variables.record_update_error, status : result });
+                  return;
               })
           }
     });
@@ -317,67 +286,17 @@ exports.mutiple_feed_create = function(req, res){
 
 
 exports.twoTbleRes = function(req, res){
+    theModel.findOne({           
+        where: {
+          id: 1
+        }
+    }).then(result => {
 
-  // ++ All data records fetch between two tables via json   
-   
-    theUserModel.findAll({
-      include: [{
-        model: theFeedModel
-       }]
-    }).then(result_details => {
-      res.json({ message: 'Record view',status : 1, record: result_details });
+      theModel.findAll().then(result_details => {   
+        res.json({ message: 'Record view',status : 1, record: result_details ,record_one: result});
+      });
+
     });
-
-  // ++ Select coloumn attributes records fetch between two tables via json   
-
-    theUserModel.findAll({
-      attributes: [
-        ['id', 'id'],['first_name', 'user_first_name']
-      ],
-      include: [{
-        model: theFeedModel,
-          username:[{
-           value:'oo'
-          }]
-  
-       }]
-    }).then(result_details => {
-      res.json({ message: 'Record view',status : 1, record: result_details });
-    });
-
-    // ++ Except specific coloumn attributes, all coloumn attributes records fetch between two tables via json   
-
-    theUserModel.findAll({
-      attributes: {
-        exclude: ['profile_pic','first_name']
-      },
-      include: [{
-        model: theFeedModel,
-          username:[{
-           value:'oo'
-          }]
-  
-       }]
-    }).then(result_details => {
-      res.json({ message: 'Record view',status : 1, record: result_details });
-    });
-
-    // ++ All data records fetch between two tables with where condition via json   
-
-    theUserModel.findAll({
-       attributes: {
-            exclude: ['profile_pic']
-      },
-      where: {username: 'tamal93'},
-      include: [{
-        model: theFeedModel,
-        where: {id: 6},
-  
-       }]
-    }).then(result_details => {
-      res.json({ message: 'Record view',status : 1, record: result_details });
-    });
-
 };
 
 

@@ -35,6 +35,7 @@ module.exports  =
 
                 "login_success"                 : "Login Success",
                 "id_not_found"                  : "ID Not Found",
+                "id_not_exists"                 : "ID Not Exists",
                 "user_picture_extension"        : ".jpg",
                 "user_picture_max_size"         : 1,
                 "image_upload_max_size"         : "Maximum upload image 2MB",

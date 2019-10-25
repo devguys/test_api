@@ -3,28 +3,35 @@
 var userController = require('../controller/user');
 var authController = require('../controller/auth/authController');
 var productDetailController = require('../controller/product_detail');
+var feedDetailController = require('../controller/feed_detail');
 var constants      = require('../../config/constants');
 const variableDefined = constants[0].application;
 const Liana = require('forest-express-sequelize');
 
 const bodyParser        = require("body-parser");
 var multer  = require('multer');
+var fs  = require('fs');
+var path=require('path');
 // define multer storage configuration     
-// const storage = multer.diskStorage({
-//     destination : function(req,file,callback){
-//         callback(null, '../../public/uploads/');
-//     },
-//     filename: function(req,file,callback){
-//         callback(null, file.fieldname + '-' + Date.now());
-//     }
+
+// var Storage = multer.diskStorage({
+//   destination: function (req, file, callback) {
+//     fs.mkdir(path.join(__dirname, 'uploads', req.ui), function(){
+//        callback(null, path.join(__dirname, 'uploads', req.ui));
+//     });
+//   },
+//   filename: function (req, file, callback) {
+//     callback(null, req.ui + file.originalname.substring(file.originalname.indexOf('.'), file.originalname.length));
+//   }
 // });
-//const upload = multer({ storage : storage});
 
-//const upload = multer({ dest: '../../public/uploads/'});
 
+//var upload = multer({ dest: './uploads'}); 
+
+//var upload = multer({  storage: Storage });
 
 var upload = multer({ dest: './uploads'}); 
-var type = upload.single('imagepic');console.log(upload);
+var type = upload.single('imagepic');
 
 
 // create application/json parser
@@ -63,34 +70,7 @@ app.route('/user/export')
     .post(isAuth, userController.export)  //Need a csv file mandatory
 app.route('/user/import')
     .post(isAuth, userController.import)
-    /*app.route('/user/import').post('/products/actions/import-data', Liana.ensureAuthenticated,
-    (req, res) => {
-      let parsed = parseDataUri(req.body.data.attributes.values['CSV file']);
-      let productType = req.body.data.attributes.values['Type'];
-  
-      csv.parse(parsed.data, { delimiter: ';' }, function (err, rows) {
-        if (err) {
-          res.status(400).send({
-            error: `Cannot import data: ${err.message}` });
-        } else {
-          return P
-            .each(rows, (row) => {
-              // Random price for the example purpose. In a real situation, the price 
-              // should certainly be available in the CSV file.
-              let price = faker.commerce.price(5, 1000) * 100;
-  
-              return models.products.create({
-                label: row[0],
-                price: price,
-                picture: row[1]
-              });
-            })
-            .then(() => {
-              res.send({ success: 'Data successfuly imported!' });
-            });
-        }
-      });
-    });*/
+
 
 //-------------------- PRODUCT DETAILS SECTION ROUTE ---------------------------------    
 
@@ -106,27 +86,37 @@ app.route('/feed')
 app.route('/mutiple_feed')
      .post( upload.array('photos', 3), productDetailController.mutiple_feed_create)
 
-
-
-// app.route('/two_tble_res')
-//      .get( productDetailController.two_tble_res)
-
-
 app.route('/two_tble_res')
     .get( productDetailController.twoTbleRes)     
 
 
-// app.route('/feed')
-//     .post( type, productDetailController.feed_create)
-
-
-// app.route('/feed')
-//     .post( multer({ dest: '../../public/uploads/'}).single('pic'), productDetailController.feed_create)
-
-
-
+app.route('/feed_comment_view')
+    .get( productDetailController.feedCommentView) 
 
 //-------------------- DO OTHER SECTION ROUTE ---------------------------------
+
+
+
+
+
+//--------------------- FEED DETAILS ROUTE ------------------------------------
+
+//--------------------- FEED DETAILS ROUTE ------------------------------------
+
+app.route('/feed_data')
+    .get(isAuth, feedDetailController.getList)
+    .delete(isAuth, feedDetailController.delete)
+    .post(upload.array('photos', 2) , feedDetailController.validate('create'),feedDetailController.create)
+//app.put('/feed', upload.array('photos', 3), isAuth, feedDetailController.validate('update'),feedDetailController.update);  //PUT requires a callback
+
+
+
+
+    //post(upload.array('photos', 2) , feedDetailController.validate('create'),feedDetailController.create)
+
+
+
+
 
 
 

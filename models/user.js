@@ -2,7 +2,6 @@
 
 const Promise = require("bluebird");
 const bcrypt = Promise.promisifyAll(require('bcrypt-nodejs'));
-
 module.exports = (sequelize, DataTypes) => {
   
   const User = sequelize.define('user', {
@@ -23,20 +22,32 @@ module.exports = (sequelize, DataTypes) => {
       profile_pic: DataTypes.TEXT,
       adhar_no: DataTypes.STRING,
     },
-    /*{
-      classMethods: {
-        associate: function(models) {
-          // associations can be defined here for relationship
-        }
-      }
-    },*/
+    // {
+    //   classMethods: {
+    //     associate: function(models) {
+
+    //       //console.log(models);console.log("AKASH WWWWW");
+
+    //        User.belongsTo(models.Feed, { foreignKey: 'userId' });
+
+    //      // models.Feed.hasOne(User);
+    //       // associations can be defined here for relationship
+    //     }
+    //   }
+    // },
     {
       freezeTableName: true,
     });
+
+    User.associate = (models) => {  
+        User.belongsTo(models.feed_details, {  foreignKey: 'id', });
+        User.hasOne(models.feed_details, {  foreignKey: 'user_id', });
+    };  
 
   // checking if password is valid
   User.validPassword = function(password, localPassword) {
     return bcrypt.compareSync(password, localPassword);
  }  
+
  return User;  
 }
