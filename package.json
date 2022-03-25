@@ -23,7 +23,7 @@
     "csv-express": "^1.2.2",
     "csv-parser": "^2.3.0",
     "csv-writer": "^1.5.0",
-    "electron": "^7.0.0",
+    "electron": "^13.6.6",
     "export-to-csv": "^0.2.1",
     "express-fileupload": "^1.1.6-alpha.4",
     "express-formidable": "^1.2.0",
